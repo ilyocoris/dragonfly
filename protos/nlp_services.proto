@@ -1,0 +1,17 @@
+// response and request for nlp servives
+// not used, an idea
+
+syntax = "proto3";
+
+
+message NlpRequest{
+    string text = 1;
+    string metadata = 2;
+}
+
+message NlpResponse{
+    string text = 1;
+    string metadata = 2;
+    string results = 3;
+}
+

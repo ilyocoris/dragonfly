@@ -1,0 +1,19 @@
+// python -m grpc_tools.protoc -I=protos --python_out=grpc_compiled/ --grpc_python_out=grpc_compiled/ protos/sa.proto
+
+syntax = "proto3";
+
+service FinanceSA{
+    rpc SentimentAnalysis(SaRequest) returns (SaResponse) {}
+}
+
+message SaRequest{
+    string text = 1;
+    string metadata = 2;
+}
+
+message SaResponse{
+    string text = 1;
+    string metadata = 2;
+    string results = 3;
+}
+

@@ -1,0 +1,21 @@
+//python -m grpc_tools.protoc -I=protos --python_out=grpc_compiled/ --grpc_python_out=grpc_compiled/ protos/scraper.proto
+
+syntax = "proto3";
+
+service Scraper{
+    rpc ScrapeReddit(ScraperRequest) returns (stream ScraperResponse) {}
+}
+
+message ScraperRequest{
+    string project_id = 1;
+    string scraping_id = 2;
+    string url = 3;
+    string url_metadata = 4;
+}
+
+message ScraperResponse{
+    string project_id = 1;
+    string scraping_id = 2;
+    string text = 3;
+    string text_metadata = 4;
+}

@@ -1,0 +1,12 @@
+# kafka
+kafka-python
+# grpc
+grpcio
+grpcio-tools
+# testing
+pytest
+# db
+pymongo[srv]
+dnspython
+# time
+datetime

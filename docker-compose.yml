@@ -1,0 +1,233 @@
+version: '3'
+services:
+  zookeeper:
+    container_name: zookeeper
+    image: wurstmeister/zookeeper
+    ports:
+      - "2181:2181"
+    logging:
+      # remove to enable logs again
+      driver: none
+  kafka:
+    container_name: kafka
+    image: wurstmeister/kafka
+    ports:
+      - "9092:9092"
+    environment:
+      DOCKER_API_VERSION: 1.22
+      KAFKA_ADVERTISED_HOST_NAME: kafka
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_CREATE_TOPICS: scraping:1:1,chunks:1:1,results:1:1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    logging:
+      # remove to enable logs again
+      driver: none
+  kowl:
+    container_name: kowl
+    image: quay.io/cloudhut/kowl:v1.4.0
+    restart: on-failure
+    hostname: kowl
+    volumes:
+      - ./kowl/config.yaml:/etc/kowl/config.yaml
+    ports:
+      - "8080:8080"
+    entrypoint: ./kowl --config.filepath=/etc/kowl/config.yaml
+    depends_on:
+      - kafka
+  # mongodb:
+  #   container_name: "stonks-mongodb"
+  #   build:
+  #     context: ./mongo/
+  #     dockerfile: ./Dockerfile
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     - MONGO_INITDB_DATABASE=database
+  #     - MONGO_INITDB_ROOT_USERNAME=root
+  #     - MONGO_INITDB_ROOT_PASSWORD=pass12345
+  #     - MONGO_HOST=mongodb
+  #     - MONGO_PORT=27027
+  #     - MONGO_DRIVER=mongodb
+  #   volumes:
+  #     - ./mongo/database:/data/db
+  #   ports:
+  #     - 27027:27017
+  #   restart: unless-stopped
+  #   #command: --quiet
+  #   logging:
+  #     driver: none
+  ner:
+    container_name: "ner-server"
+    build:
+      context: .
+      dockerfile: ner/Dockerfile
+    command: python3 server.py
+    ports:
+      - "50052:50052"
+    environment:
+      #- GRPC_DNS_RESOLVER=dns
+      - GRPC_VERBOSITY=INFO
+    volumes:
+      - ner:/ner:cached
+      - grpc_compiled:/grpc_compiled:cached
+    extra_hosts:
+      - "host.docker.internal:127.17.0.1"
+  sa:
+    container_name: "sa-server"
+    build:
+      context: .
+      dockerfile: sa/Dockerfile
+    command: python3 server.py
+    ports:
+      - "50053:50053"
+    volumes:
+      - sa:/sa:cached
+      - grpc_compiled:/grpc_compiled:cached
+    extra_hosts:
+      - "host.docker.internal:127.17.0.1"
+  scraper:
+    container_name: "scraper-server"
+    build:
+      context: .
+      dockerfile: scraper/Dockerfile
+    command: python3 -u server.py
+    env_file:
+      - .env
+    ports:
+      - "50051:50051"
+    environment:
+      #- GRPC_DNS_RESOLVER=dns
+      - GRPC_VERBOSITY=INFO # DEBUG
+    volumes:
+      - scraper:/scraper:cached
+      - grpc_compiled:/grpc_compiled:cached
+    extra_hosts:
+      - "host.docker.internal:127.17.0.1"
+  api:
+    container_name: "api"
+    build:
+      context: .
+      dockerfile: ./app/Dockerfile
+    command: python3 main.py
+    #command: python3 main.py #uvicorn app.main:app --host 0.0.0.0 --port 6969 --reload
+    env_file:
+      - .env
+    ports:
+      - "6969:6969"
+    volumes:
+      - api:/app:cached
+      - grpc_compiled:/grpc_compiled:cached
+      - utils:/utils:cached
+    depends_on:
+      - kafka
+    extra_hosts:
+      - "host.docker.internal:127.17.0.1"
+  consumer-scraper:
+    container_name: "consumer-scraper"
+    build:
+      context: .
+      dockerfile: ./consumer-scraper/Dockerfile
+    command: python3 scraper_stream.py
+    env_file:
+      - .env
+    volumes:
+      - consumer-scraper:/consumer-scraper:cached
+      - grpc_compiled:/grpc_compiled:cached
+      - utils:/utils:cached
+    extra_hosts:
+      - "host.docker.internal:127.17.0.1"
+    depends_on:
+      - kafka
+  consumer-analyzer:
+    container_name: "consumer-analyzer"
+    build:
+      context: .
+      dockerfile: ./consumer-analyzer/Dockerfile
+    command: python3 analyzer_stream.py
+    env_file:
+      - .env
+    volumes:
+      - consumer-analyzer:/consumer-analyzer:cached
+      - grpc_compiled:/grpc_compiled:cached
+      - utils:/utils:cached
+    extra_hosts:
+      - "host.docker.internal:127.17.0.1"
+    depends_on:
+      - kafka
+  notebooks:
+    container_name: notebooks
+    build:
+      context: .
+      dockerfile: ./notebooks/Dockerfile
+    command: jupyter notebook --allow-root --notebook-dir=. --ip=0.0.0.0 --port=8888
+      --no-browser
+    env_file:
+      - .env
+    ports:
+      - "8888:8888"
+    volumes:
+      - notebooks:/workspace/notebooks:cached
+      - grpc_compiled:/grpc_compiled:cached
+      - api:/workspace/app:cached
+      - utils:/utils:cached
+      - scraper:/workspace/scraper:cached
+    extra_hosts:
+      - "host.docker.internal:127.17.0.1"
+    restart: unless-stopped
+
+volumes:
+  grpc_compiled:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${PWD}/grpc_compiled
+      o: bind
+  api:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${PWD}/app
+      o: bind
+  notebooks:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${PWD}/notebooks
+      o: bind
+  ner:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${PWD}/ner
+      o: bind
+  sa:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${PWD}/sa
+      o: bind
+  consumer-scraper:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${PWD}/consumer-scraper
+      o: bind
+  consumer-analyzer:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${PWD}/consumer-analyzer
+      o: bind
+  utils:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${PWD}/utils
+      o: bind
+  scraper:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${PWD}/scraper
+      o: bind

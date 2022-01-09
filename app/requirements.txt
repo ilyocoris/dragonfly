@@ -1,0 +1,19 @@
+# basic
+pandas
+numpy
+# grpc
+grpcio
+grpcio-tools
+# api endpoint
+fastapi==0.70.0
+uvicorn==0.15.0
+#testing
+pytest
+# parsing
+bs4
+# reddit 
+praw
+# kafka
+kafka-python
+# ids
+pymongo

@@ -1,0 +1,10 @@
+# grpc
+grpcio
+grpcio-tools
+#testing
+pytest
+pydantic
+# parsing
+bs4
+# reddit 
+praw

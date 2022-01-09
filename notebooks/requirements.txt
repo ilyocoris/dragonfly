@@ -1,0 +1,17 @@
+# basic
+pandas
+numpy
+# grpc
+grpcio
+grpcio-tools
+# kafka
+kafka-python
+# reddit
+praw
+# verification
+pydantic
+# db
+pymongo[srv]
+dnspython
+# time
+datetime
