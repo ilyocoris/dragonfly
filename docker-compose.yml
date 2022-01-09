@@ -57,6 +57,18 @@ services:
   #   #command: --quiet
   #   logging:
   #     driver: none
+  analytics-frontend:
+    container_name: analytics-frontend
+    build:
+      context: .
+      dockerfile: analytics-frontend/Dockerfile
+    command: streamlit run main.py --server.port 2222
+    ports:
+      - "2222:2222"
+    env_file:
+      - .env
+    volumes:
+      - analytics-frontend:/analytics-frontend:cached
   ner:
     container_name: "ner-server"
     build:
@@ -230,4 +242,10 @@ volumes:
     driver_opts:
       type: none
       device: ${PWD}/scraper
+      o: bind
+  analytics-frontend:
+    driver: local
+    driver_opts:
+      type: none
+      device: ${PWD}/analytics-frontend
       o: bind

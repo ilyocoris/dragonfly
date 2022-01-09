@@ -1,0 +1,13 @@
+# basic
+pandas
+numpy
+# verification
+pydantic
+# db
+pymongo[srv]
+dnspython
+# time
+datetime
+# streamlit
+streamlit
+
