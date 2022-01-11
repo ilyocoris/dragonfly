@@ -88,7 +88,7 @@ for event in consumer:
             text_metadata = json.loads(chunk["text_metadata"])
             # timestamp from unix to utc, for mongo time series TM to recognize
             utc_ts = datetime.fromtimestamp(
-                int(text_metadata["timestamp"]) / 1000, tz=timezone.utc)
+                int(float(text_metadata["timestamp"])), tz=timezone.utc)
             db[os.environ.get("COLLECTION_EVENTS")].insert_one({
                 "event": {
                     "entity": entity,
@@ -99,6 +99,7 @@ for event in consumer:
                 "timestamp": utc_ts,
                 "metadata": {
                     "scraping_id": chunk["scraping_id"],
-                    "chunk_id": chunk["chunk_id"]
+                    "chunk_id": chunk["chunk_id"],
+                    "text": chunk["text"]
                 }
             })

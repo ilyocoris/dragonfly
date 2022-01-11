@@ -14,15 +14,20 @@ client = MongoClient(
 )
 db = client[os.environ.get("MONGO_DB_NAME")]
 
-# if no events time series shiny mongo collection *_* -> create it!
+# if no events time series, create it!
 if os.environ.get("COLLECTION_EVENTS") not in db.list_collection_names():
     db.create_collection(
-        'events',
+        os.environ.get("COLLECTION_EVENTS"),
         timeseries={
             'timeField': 'timestamp',
             'metaField': 'metadata',
             'granularity': 'hours'
         }
+    )
+
+if os.environ.get("COLLECTION_SCRAPING_REDDIT") not in db.list_collection_names():
+    db.create_collection(
+        os.environ.get("COLLECTION_SCRAPING_REDDIT")
     )
 
 
