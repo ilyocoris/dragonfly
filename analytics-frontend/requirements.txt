@@ -10,4 +10,5 @@ dnspython
 datetime
 # streamlit
 streamlit
-
+# plots
+altair

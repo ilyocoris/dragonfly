@@ -15,3 +15,7 @@ pymongo[srv]
 dnspython
 # time
 datetime
+# finance
+yfinance
+# plots
+altair

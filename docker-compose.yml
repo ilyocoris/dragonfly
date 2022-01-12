@@ -69,6 +69,7 @@ services:
       - .env
     volumes:
       - analytics-frontend:/analytics-frontend:cached
+      - utils:/utils:cached
   ner:
     container_name: "ner-server"
     build:

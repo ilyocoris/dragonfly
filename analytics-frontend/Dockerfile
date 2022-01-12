@@ -9,7 +9,5 @@ WORKDIR /analytics-frontend
 COPY /analytics-frontend/requirements.txt /analytics-frontend/
 RUN python3 -m pip install -r requirements.txt
 
-
-
-# start server
-# CMD [ "python3", "server.py"]
+# add utils to pythonpath
+ENV PYTHONPATH "${PYTHONPATH}:/utils/"
