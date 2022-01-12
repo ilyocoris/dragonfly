@@ -1,6 +1,8 @@
 # DragonFly
 Real time sentiment analysis on entities from scraped text.
 
+If you want to know more about this project check out this [article](https://dev.to/ilyocoris/dragonfly-real-time-entity-sentiment-analysis-4616)!
+
 ## Overview
 
 The vision behind this project is to create an events collection that is thought to be a historical archive of heterogenous events (sentiment of twitter/reddit comments on a company/crypto/party and the market fluctuations of the stock/coin or political polls). Both the easy-to-scale nature of the grpc micro-services and the asynchronous capabilities of kafka topics, backed by the consistency of MongoDB, build towards a real-time opinion temperature of an entity in this fast-moving internet, where a subreddit or telegram can x900% a crypto in hours or a twitter influencer can cascade a political opinion into virality.
