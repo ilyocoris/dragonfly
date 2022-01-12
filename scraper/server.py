@@ -2,6 +2,7 @@ import os
 import re
 import json
 import praw
+from typing import Dict
 from pydantic import BaseModel
 
 import grpc
@@ -27,7 +28,7 @@ class Scraper(scraper_pb2_grpc.ScraperServicer):
 
     def ScrapeReddit(self, request, context):
         if not self.reddit:
-            self._initialize_reddit_scraper()
+            self._initialize_reddit_scraper(json.loads(request.url_metadata))
         for comment in self._get_subreddit_comments(url=request.url):
             yield scraper_pb2.ScraperResponse(
                 project_id=request.project_id,
@@ -36,14 +37,17 @@ class Scraper(scraper_pb2_grpc.ScraperServicer):
                 text_metadata=comment.text_metadata
             )
 
-    def _initialize_reddit_scraper(self):
+    def _initialize_reddit_scraper(self, url_metadata: Dict):
         self.reddit = praw.Reddit(
             client_id=os.environ.get("REDDIT_APP_ID"),
             client_secret=os.environ.get("REDDIT_APP_SECRET"),
             user_agent=os.environ.get(
                 "REDDIT_APP_NAME") + ' by ' + os.environ.get("REDDIT_USERNAME")
         )
-        self.reddit_posts_limit = 10
+        if "post_limit" in url_metadata:
+            self.reddit_posts_limit = url_metadata["post_limit"]
+        else:
+            self.reddit_posts_limit = 10
 
     def _get_subreddit_comments(self, url: str) -> TextChunk:
         """
