@@ -173,8 +173,7 @@ services:
     build:
       context: .
       dockerfile: ./notebooks/Dockerfile
-    command: jupyter notebook --allow-root --notebook-dir=. --ip=0.0.0.0 --port=8888
-      --no-browser
+    command: jupyter notebook --allow-root --notebook-dir=. --ip=0.0.0.0 --port=8888 --no-browser
     env_file:
       - .env
     ports:
@@ -185,6 +184,7 @@ services:
       - api:/workspace/app:cached
       - utils:/utils:cached
       - scraper:/workspace/scraper:cached
+      - ner:/workspace/ner:cached
     extra_hosts:
       - "host.docker.internal:127.17.0.1"
     restart: unless-stopped
