@@ -9,7 +9,7 @@ import sa_pb2
 import sa_pb2_grpc
 
 
-class FinanceSA(sa_pb2_grpc.FinanceSAServicer):
+class SA(sa_pb2_grpc.SAServicer):
     def __init__(self):
         self._load_sa_pipeline(
             model_path_or_name="models/distilroberta-finetuned-financial-news-sentiment-analysis"
@@ -46,8 +46,8 @@ class FinanceSA(sa_pb2_grpc.FinanceSAServicer):
 
 def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    sa_pb2_grpc.add_FinanceSAServicer_to_server(
-        FinanceSA(), server)
+    sa_pb2_grpc.add_SAServicer_to_server(
+        SA(), server)
     server.add_insecure_port('[::]:50053')
     server.start()
     server.wait_for_termination()

@@ -85,7 +85,7 @@ def new_reddit_comment(url: str, url_metadata: Dict, chunk: scraper_pb2.ScraperR
 for event in consumer:
     scraping_job = event.value
     url = scraping_job["url"]
-    url_metadata = scraping_job["url_metadata"]
+    url_metadata = scraping_job["url_metadata"]["request"]
     request = scraper_pb2.ScraperRequest(
         project_id=scraping_job["project_id"],
         scraping_id=scraping_job["scraping_id"],

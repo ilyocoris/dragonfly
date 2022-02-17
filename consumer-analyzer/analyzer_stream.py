@@ -20,12 +20,12 @@ import sa_pb2_grpc
 ner_channel = grpc.insecure_channel(
     os.environ.get("NER_SERVER_ADDRESS")
 )
-ner_stub = ner_pb2_grpc.FinanceNERStub(ner_channel)
+ner_stub = ner_pb2_grpc.NERStub(ner_channel)
 # sa grpc client
 sa_channel = grpc.insecure_channel(
     os.environ.get("SA_SERVER_ADDRESS")
 )
-sa_stub = sa_pb2_grpc.FinanceSAStub(sa_channel)
+sa_stub = sa_pb2_grpc.SAStub(sa_channel)
 
 # define consumer
 consumer = kafka_consumer.initialize(
@@ -100,6 +100,14 @@ for event in consumer:
                 "metadata": {
                     "scraping_id": chunk["scraping_id"],
                     "chunk_id": chunk["chunk_id"],
-                    "text": chunk["text"]
+                    "text_content": chunk["text"],
+                    "sa": {
+                        "result": sa_results,
+                        "metadata": json.loads(sa_response.metadata)
+                    },
+                    "ner": {
+                        "result": ner_results,
+                        "metadata": json.loads(ner_response.metadata)
+                    }
                 }
             })

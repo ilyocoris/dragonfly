@@ -30,11 +30,18 @@ class Scraper(scraper_pb2_grpc.ScraperServicer):
         if not self.reddit:
             self._initialize_reddit_scraper(json.loads(request.url_metadata))
         for comment in self._get_subreddit_comments(url=request.url):
+            # returning also url metadata
+            metadata = json.dumps(
+                {
+                    "text": comment.text_metadata,
+                    "request": request.url_metadata
+                }
+            )
             yield scraper_pb2.ScraperResponse(
                 project_id=request.project_id,
                 scraping_id=request.scraping_id,
                 text=comment.text,
-                text_metadata=comment.text_metadata
+                text_metadata=metadata
             )
 
     def _initialize_reddit_scraper(self, url_metadata: Dict):

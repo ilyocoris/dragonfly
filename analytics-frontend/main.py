@@ -61,7 +61,7 @@ def get_top_entities():
         }])
     df = pd.DataFrame(entities)
     df = df.rename(columns={"_id": "entity"})
-    return list(df.sort_values(by=["count"], ascending=False, ignore_index=True).head(10)["entity"])
+    return list(df.sort_values(by=["count"], ascending=False, ignore_index=True).head(20)["entity"])
 
 
 def altair_opinion_barplot(entity):

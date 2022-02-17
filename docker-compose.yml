@@ -81,6 +81,8 @@ services:
     environment:
       #- GRPC_DNS_RESOLVER=dns
       - GRPC_VERBOSITY=INFO
+    env_file:
+      - .env
     volumes:
       - ner:/ner:cached
       - grpc_compiled:/grpc_compiled:cached
@@ -91,7 +93,7 @@ services:
     build:
       context: .
       dockerfile: sa/Dockerfile
-    command: python3 server.py
+    command: python3 server_finance.py
     ports:
       - "50053:50053"
     volumes:

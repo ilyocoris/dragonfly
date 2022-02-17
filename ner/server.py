@@ -1,7 +1,9 @@
+import os
 import re
 import json
 import pandas as pd
-from typing import Dict
+from typing import Dict, List
+from pymongo import MongoClient
 
 import grpc
 from concurrent import futures
@@ -10,41 +12,79 @@ import ner_pb2
 import ner_pb2_grpc
 
 
-class FinanceNER(ner_pb2_grpc.FinanceNERServicer):
+class NER(ner_pb2_grpc.NERServicer):
     def __init__(self):
-        df = pd.read_csv(
-            # "https://raw.githubusercontent.com/datasets/s-and-p-500-companies/master/data/constituents.csv"
-            "s&p.csv"
-        )
-        # self.company_names = list(df["Name"])
-        self.company_symbols = list(df["Symbol"])
+        print("Initializing NER GRPC Server.")
+        # identifier of the version of the grpc service
+        self.version = "naivekw_0"
+        # dictionary with all the entities to match
+        self.entities = {}
+        # fetch all crypto and finance entities
+        self.fetch_entities_from_db([])
 
     def ExtractEntities(self, request, context):
         try:
-            ner_results = self._ner(request.text)
+            ner_results = self._ner(request)
         except:
-            ner_results = self._naive_ner(request.text)
+            ner_results = self._naive_ner(request=request)
+        response_metadata = self.process_metadata(request.metadata)
         return ner_pb2.NerResponse(
             text=request.text,
-            metadata=request.metadata,
+            metadata=response_metadata,
             results=json.dumps(ner_results, ensure_ascii=False)
         )
 
-    def _naive_ner(self, text: str) -> Dict:
+    def process_metadata(self, metadata: str) -> str:
+        request_metadata = json.loads(metadata)
+        request_metadata["ner"] = {"ner_version": self.version}
+        return json.dumps(request_metadata)
+
+    def fetch_entities_from_db(self, domains: List[str]) -> Dict:
+        # get entities from db
+        client = MongoClient(os.getenv("MONGO_CONNECTION_STRING"))
+        db = client[os.getenv("MONGO_DB_NAME")]
+        mongo_entities = db[os.getenv("COLLECTION_ENTITIES")].find({
+            "domain": {"$in": domains}})
+        # add domains to entities
+        for domain in domains:
+            if domain not in self.entities.keys():
+                self.entities[domain] = {}
+        # format entities {domain:{entity:{synonims}}}
+        for entity in mongo_entities:
+            self.entities[entity["domain"]][entity["entity"]] = {
+                "synonims": entity["synonims"],
+                # "domain": entity["domain"]
+            }
+
+    def _naive_ner(self, request: ner_pb2.NerResponse) -> Dict:
         """
             State-of-the-art.
         """
-        ner_matches = {}
-        for company in self.company_symbols:
-            if company in text and len(company) > 1:
-                search = re.search(
-                    r"[\s\,\.\?\!]" + company + r"[\s\,\.\?\!]", text)
-                if not search:
-                    search = re.search(r"^" + company + r"[\s\,\.\?\!]", text)
-                if search:
-                    ner_matches[company] = {
-                        "span": [search.span()[0] + 1, search.span()[1] - 1]
-                    }
+        text = request.text
+        request_metadata = json.loads(request.metadata)["request"]
+        if "domains" not in request_metadata:
+            return {}
+        for domain in request_metadata["domains"]:
+            # if entities for a domain are not downloaded, do so
+            if domain not in self.entities.keys():
+                self.fetch_entities_from_db([domain])
+            ner_matches = {}
+            for entity in self.entities[domain].keys():
+                synonims = self.entities[domain][entity]["synonims"]
+                for synonim in synonims:
+                    if synonim in text and len(synonim) > 1:
+                        search = re.search(
+                            r"[\s\,\.\?\!]" + synonim + r"[\s\,\.\?\!]", text)
+                        if not search:
+                            search = re.search(
+                                r"^" + synonim + r"[\s\,\.\?\!]", text)
+                        if search:
+                            # TODO: ner_matches[entity]["matches"]
+                            ner_matches[entity] = {
+                                "span": [search.span()[0] + 1, search.span()[1] - 1],
+                                "match": synonim,
+                                "domain": domain
+                            }
         return ner_matches
 
     def _ner(self, text: str) -> Dict:
@@ -60,8 +100,8 @@ class FinanceNER(ner_pb2_grpc.FinanceNERServicer):
 
 def serve():
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    ner_pb2_grpc.add_FinanceNERServicer_to_server(
-        FinanceNER(), server)
+    ner_pb2_grpc.add_NERServicer_to_server(
+        NER(), server)
     server.add_insecure_port('[::]:50052')
     server.start()
     server.wait_for_termination()

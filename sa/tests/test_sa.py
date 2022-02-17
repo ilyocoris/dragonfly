@@ -8,14 +8,14 @@ for module_path in [os.path.abspath("/home/gus/Desktop/nlp-finance/"), os.path.a
         sys.path.append(module_path)
 
 import json
-from sa.server import FinanceSA
+from sa.server_finance import SA
 
 import sa_pb2
 import sa_pb2_grpc
 
 
 def test_sentiment_analysis():
-    finsta = FinanceSA()
+    finsta = SA()
     request = sa_pb2.SaRequest(
         text="I think CRM stocks are sinking big time. Everybody dip!"
     )

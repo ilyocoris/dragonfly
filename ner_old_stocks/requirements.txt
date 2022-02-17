@@ -1,8 +1,0 @@
-# basic
-pandas
-numpy
-# grpc
-grpcio
-grpcio-tools
-# testing
-pytest

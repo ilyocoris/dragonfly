@@ -5,7 +5,7 @@ syntax = "proto3";
 //import "nlp_services.proto";
 
 
-service FinanceNER{
+service NER{
     rpc ExtractEntities(NerRequest) returns (NerResponse) {}
 }
 

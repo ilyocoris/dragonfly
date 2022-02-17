@@ -8,11 +8,11 @@ for module_path in [os.path.abspath("/home/gus/Desktop/nlp-finance/"), os.path.a
 
 import json
 import ner_pb2
-from ner.server import FinanceNER
+from ner.server_finance import NER
 
 
 def test_extract_entities():
-    finer = FinanceNER()
+    finer = NER()
     request = ner_pb2.NerRequest(
         text="My personal bet is CTSH, they finna go up!"
     )
