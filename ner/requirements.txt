@@ -4,5 +4,8 @@ numpy
 # grpc
 grpcio
 grpcio-tools
+# db
+pymongo[srv]
+dnspython
 # testing
 pytest

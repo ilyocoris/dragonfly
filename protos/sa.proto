@@ -2,7 +2,7 @@
 
 syntax = "proto3";
 
-service FinanceSA{
+service SA{
     rpc SentimentAnalysis(SaRequest) returns (SaResponse) {}
 }
 

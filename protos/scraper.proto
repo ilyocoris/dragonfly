@@ -10,12 +10,12 @@ message ScraperRequest{
     string project_id = 1;
     string scraping_id = 2;
     string url = 3;
-    string url_metadata = 4;
+    string metadata = 4;
 }
 
 message ScraperResponse{
     string project_id = 1;
     string scraping_id = 2;
     string text = 3;
-    string text_metadata = 4;
+    string metadata = 4;
 }

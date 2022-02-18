@@ -81,6 +81,8 @@ services:
     environment:
       #- GRPC_DNS_RESOLVER=dns
       - GRPC_VERBOSITY=INFO
+    env_file:
+      - .env
     volumes:
       - ner:/ner:cached
       - grpc_compiled:/grpc_compiled:cached
@@ -91,7 +93,7 @@ services:
     build:
       context: .
       dockerfile: sa/Dockerfile
-    command: python3 server.py
+    command: python3 server_finance.py
     ports:
       - "50053:50053"
     volumes:
@@ -173,8 +175,7 @@ services:
     build:
       context: .
       dockerfile: ./notebooks/Dockerfile
-    command: jupyter notebook --allow-root --notebook-dir=. --ip=0.0.0.0 --port=8888
-      --no-browser
+    command: jupyter notebook --allow-root --notebook-dir=. --ip=0.0.0.0 --port=8888 --no-browser
     env_file:
       - .env
     ports:
@@ -185,6 +186,7 @@ services:
       - api:/workspace/app:cached
       - utils:/utils:cached
       - scraper:/workspace/scraper:cached
+      - ner:/workspace/ner:cached
     extra_hosts:
       - "host.docker.internal:127.17.0.1"
     restart: unless-stopped

@@ -19,3 +19,5 @@ datetime
 yfinance
 # plots
 altair
+# scrapping
+beautifulsoup4

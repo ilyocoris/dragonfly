@@ -46,22 +46,22 @@ def publish_chunk(chunk: scraper_pb2.ScraperResponse) -> None:
             "project_id": chunk.project_id,
             "scraping_id": chunk.scraping_id,
             "text": chunk.text,
-            "text_metadata": chunk.text_metadata
+            "metadata": chunk.metadata
         })
     )
 
 
-def new_reddit_comment(url: str, url_metadata: Dict, chunk: scraper_pb2.ScraperResponse) -> bool:
+def new_reddit_comment(url: str, chunk: scraper_pb2.ScraperResponse) -> bool:
     '''
         Checks that the comment that contains the chunk has not already been scraped.
         If it is new, it stores the id on the mongodb and returns True so it is published to the chunks topic.
         If the comment had already been scraped, it returns False.
     '''
     db = mongodb.get_db_connection()
-    reddit_metadata = json.loads(chunk.text_metadata)
+    text_metadata = json.loads(chunk.metadata)["scraper"]["text"]
     db_post = db["scraping_reddit"].find_one(
         {
-            "post": reddit_metadata["post_id"]
+            "post": text_metadata["post_id"]
         }
     )
     if not db_post:
@@ -69,13 +69,13 @@ def new_reddit_comment(url: str, url_metadata: Dict, chunk: scraper_pb2.ScraperR
             "scraping": chunk.scraping_id,
             "project": chunk.project_id,
             "subreddit": url,
-            "url_metadata": url_metadata,
-            "post": reddit_metadata["post_id"],
-            "comments": [reddit_metadata["comment_id"]]
+            "metadata": metadata,
+            "post": text_metadata["post_id"],
+            "comments": [text_metadata["comment_id"]]
         })
-    elif reddit_metadata["comment_id"] not in db_post["comments"]:
-        db["scraping_reddit"].update_one({"scraping": chunk.scraping_id, "post": reddit_metadata["post_id"]}, {
-                                         "$set": {"comments": db_post["comments"] + [reddit_metadata["comment_id"]]}})
+    elif text_metadata["comment_id"] not in db_post["comments"]:
+        db["scraping_reddit"].update_one({"scraping": chunk.scraping_id, "post": text_metadata["post_id"]}, {
+                                         "$set": {"comments": db_post["comments"] + [text_metadata["comment_id"]]}})
     else:
         # comment already scrapped
         return False
@@ -85,15 +85,15 @@ def new_reddit_comment(url: str, url_metadata: Dict, chunk: scraper_pb2.ScraperR
 for event in consumer:
     scraping_job = event.value
     url = scraping_job["url"]
-    url_metadata = scraping_job["url_metadata"]
+    metadata = scraping_job["metadata"]
     request = scraper_pb2.ScraperRequest(
         project_id=scraping_job["project_id"],
         scraping_id=scraping_job["scraping_id"],
         url=url,
-        url_metadata=json.dumps(url_metadata)
+        metadata=json.dumps(metadata)
     )
-    if "type" in url_metadata:
-        if url_metadata["type"] == "subreddit":
+    if "type" in metadata["request"]:
+        if metadata["request"]["type"] == "subreddit":
             for chunk in scraper_stub.ScrapeReddit(request):
-                if new_reddit_comment(url, url_metadata, chunk):
+                if new_reddit_comment(url, chunk):
                     publish_chunk(chunk)

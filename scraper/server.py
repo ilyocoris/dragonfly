@@ -18,23 +18,35 @@ logger.setLevel(logging.DEBUG)
 
 class TextChunk(BaseModel):
     text: str
-    text_metadata: str
+    metadata: str
 
 
 class Scraper(scraper_pb2_grpc.ScraperServicer):
     def __init__(self):
-        print("Scraper grpc Service innit.")
         self.reddit = None
+        self.version = "praw-mongo_0"
+        logger.info(
+            "Initialization of Scraper GRPC Service version: " + self.version
+        )
 
     def ScrapeReddit(self, request, context):
         if not self.reddit:
-            self._initialize_reddit_scraper(json.loads(request.url_metadata))
+            self._initialize_reddit_scraper(
+                json.loads(request.metadata)["request"])
         for comment in self._get_subreddit_comments(url=request.url):
+            # add scraper metadata
+            metadata = json.loads(request.metadata)
+            metadata["scraper"] = {
+                "text": json.loads(comment.metadata),
+                "version": self.version
+            }
+            metadata = json.dumps(metadata)
+            # yield results
             yield scraper_pb2.ScraperResponse(
                 project_id=request.project_id,
                 scraping_id=request.scraping_id,
                 text=comment.text,
-                text_metadata=comment.text_metadata
+                metadata=metadata
             )
 
     def _initialize_reddit_scraper(self, url_metadata: Dict):
@@ -58,7 +70,7 @@ class Scraper(scraper_pb2_grpc.ScraperServicer):
         """
         # TODO: think about reddit urls
         subreddit_name = re.search("/r/([^/]+)", url)[1]
-        print("Scraping subreddit", subreddit_name)
+        logger.info("Scraping subreddit", subreddit_name)
         # TODO: may not want to get new
         posts = self.reddit.subreddit(subreddit_name).new(
             limit=self.reddit_posts_limit)
@@ -69,7 +81,7 @@ class Scraper(scraper_pb2_grpc.ScraperServicer):
             for comment in submission.comments.list():
                 yield TextChunk(**{
                     "text": comment.body,
-                    "text_metadata": json.dumps({
+                    "metadata": json.dumps({
                         "timestamp": comment.created,
                         # "parent_comment_id": comment.parend_id,
                         "comment_id": comment.id,

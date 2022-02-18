@@ -15,9 +15,6 @@ import ner_pb2_grpc
 import sa_pb2
 import sa_pb2_grpc
 
-# from dotenv import load_dotenv
-# load_dotenv()
-
 from pydantic import BaseModel
 
 
@@ -118,10 +115,10 @@ class EventExtractor():
         ner_channel = grpc.insecure_channel(
             os.environ.get("NER_SERVER_ADDRESS")
         )
-        self.ner_stub = ner_pb2_grpc.FinanceNERStub(ner_channel)
+        self.ner_stub = ner_pb2_grpc.NERStub(ner_channel)
 
     def _initialize_sa_stub(self):
         sa_channel = grpc.insecure_channel(
             os.environ.get("SA_SERVER_ADDRESS")
         )
-        self.sa_stub = sa_pb2_grpc.FinanceSAStub(sa_channel)
+        self.sa_stub = sa_pb2_grpc.SAStub(sa_channel)
