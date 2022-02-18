@@ -11,16 +11,29 @@ from concurrent import futures
 import ner_pb2
 import ner_pb2_grpc
 
+import logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
 
 class NER(ner_pb2_grpc.NERServicer):
+    """
+        This microservice receives text and finds entities dpeending on the domain. The domain is not a parameter by design, for different domains you should spin up different instances.
+    """
+
     def __init__(self):
-        print("Initializing NER GRPC Server.")
+
         # identifier of the version of the grpc service
         self.version = "naivekw_0"
+        logger.info(
+            "Initialization of NER GRPC Service version:" + self.version
+        )
         # dictionary with all the entities to match
         self.entities = {}
+        # domains
+        self.domains = ["crypto"]  # finance
         # fetch all crypto and finance entities
-        self.fetch_entities_from_db([])
+        self.fetch_entities_from_db(self.domains)
 
     def ExtractEntities(self, request, context):
         try:
@@ -35,9 +48,9 @@ class NER(ner_pb2_grpc.NERServicer):
         )
 
     def process_metadata(self, metadata: str) -> str:
-        request_metadata = json.loads(metadata)
-        request_metadata["ner"] = {"ner_version": self.version}
-        return json.dumps(request_metadata)
+        metadata = json.loads(metadata)
+        metadata["ner"] = {"version": self.version}
+        return json.dumps(metadata)
 
     def fetch_entities_from_db(self, domains: List[str]) -> Dict:
         # get entities from db
@@ -61,10 +74,7 @@ class NER(ner_pb2_grpc.NERServicer):
             State-of-the-art.
         """
         text = request.text
-        request_metadata = json.loads(request.metadata)["request"]
-        if "domains" not in request_metadata:
-            return {}
-        for domain in request_metadata["domains"]:
+        for domain in self.domains:
             # if entities for a domain are not downloaded, do so
             if domain not in self.entities.keys():
                 self.fetch_entities_from_db([domain])

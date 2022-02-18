@@ -36,7 +36,7 @@ producer = kafka_producer.initialize()
 class URLRequest(BaseModel):
     project_id: str
     url: str
-    url_metadata: Dict = {}
+    request_metadata: Dict = {}
 
 
 class ScrapingRequest(BaseModel):
@@ -62,7 +62,7 @@ def process_urls(request: ScrapingRequest):
             "scraping_id": str(ObjectId()),
             "project_id": url.project_id,
             "url": url.url,
-            "url_metadata": url.url_metadata
+            "metadata": {"request": url.request_metadata}
         }
         producer.send(
             os.environ.get('TOPIC_SCRAPING'),

@@ -37,7 +37,7 @@ consumer = kafka_consumer.initialize(
 producer = kafka_producer.initialize()
 
 
-def publish_result(chunk_event: Dict, ner_results: Dict, sa_results: Dict) -> None:
+def publish_result(chunk_event: Dict, ner_response: ner_pb2.NerResponse, sa_response: sa_pb2.SaRequest) -> None:
     chunk_value = json.loads(chunk_event.value)
     producer.send(
         os.environ.get('TOPIC_RESULTS'),
@@ -46,9 +46,9 @@ def publish_result(chunk_event: Dict, ner_results: Dict, sa_results: Dict) -> No
             "chunk_id": chunk_value["chunk_id"],
             "project_id": chunk_value["project_id"],
             "text": chunk_value["text"],
-            "text_metadata": chunk_value["text_metadata"],
-            "ner_results": json.dumps(ner_results),
-            "sa_results": json.dumps(sa_results)
+            "metadata": json.loads(sa_response.metadata),
+            "ner_results": json.loads(ner_response.results),
+            "sa_results": json.loads(sa_response.results)
         })
     )
 
@@ -63,7 +63,7 @@ for event in consumer:
     ner_response = ner_stub.ExtractEntities(
         ner_pb2.NerRequest(
             text=chunk["text"],
-            metadata=chunk["text_metadata"]
+            metadata=chunk["metadata"]
         )
     )
     ner_results = json.loads(ner_response.results)
@@ -71,7 +71,7 @@ for event in consumer:
         sa_response = sa_stub.SentimentAnalysis(
             sa_pb2.SaRequest(
                 text=chunk["text"],
-                metadata=chunk["text_metadata"]
+                metadata=ner_response.metadata
             )
         )
         sa_results = json.loads(sa_response.results)
@@ -79,13 +79,13 @@ for event in consumer:
         # publish to kafka
         publish_result(
             chunk_event=event,
-            ner_results=ner_results,
-            sa_results=sa_results
+            ner_response=ner_response,
+            sa_response=sa_response
         )
         # TODO: move this to another consumer
         # publish events to mongo time series TM
         for entity in ner_results:
-            text_metadata = json.loads(chunk["text_metadata"])
+            text_metadata = json.loads(chunk["metadata"])["scraper"]["text"]
             # timestamp from unix to utc, for mongo time series TM to recognize
             utc_ts = datetime.fromtimestamp(
                 int(float(text_metadata["timestamp"])), tz=timezone.utc)
@@ -100,14 +100,11 @@ for event in consumer:
                 "metadata": {
                     "scraping_id": chunk["scraping_id"],
                     "chunk_id": chunk["chunk_id"],
-                    "text_content": chunk["text"],
-                    "sa": {
-                        "result": sa_results,
-                        "metadata": json.loads(sa_response.metadata)
-                    },
-                    "ner": {
-                        "result": ner_results,
-                        "metadata": json.loads(ner_response.metadata)
-                    }
+                    "text": chunk["text"],
+                    "services": json.loads(sa_response.metadata)
+                },
+                "results": {
+                    "ner": ner_results,
+                    "sa": sa_results
                 }
             })

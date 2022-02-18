@@ -8,11 +8,20 @@ from concurrent import futures
 import sa_pb2
 import sa_pb2_grpc
 
+import logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
 
 class SA(sa_pb2_grpc.SAServicer):
     def __init__(self):
+        self.version = "distilroberta-finsa_0"
+        logger.info(
+            "Initialization of SA GRPC Service version: " + self.version
+        )
+        self.model = "models/distilroberta-finetuned-financial-news-sentiment-analysis"
         self._load_sa_pipeline(
-            model_path_or_name="models/distilroberta-finetuned-financial-news-sentiment-analysis"
+            model_path_or_name=self.model
         )
 
     def _load_sa_pipeline(self, model_path_or_name: str):
@@ -34,9 +43,15 @@ class SA(sa_pb2_grpc.SAServicer):
     def SentimentAnalysis(self, request, context):
         # TODO: manage sequences longer than 512 tokens
         pipeline_result = self.sa_pipeline(request.text[:200])[0]
+        metadata = json.loads(request.metadata)
+        metadata["sa"] = {
+            "version": self.version,
+            "model": self.model
+        }
+        metadata = json.dumps(metadata)
         return sa_pb2.SaResponse(
             text=request.text,
-            metadata=request.metadata,
+            metadata=metadata,
             results=json.dumps(
                 pipeline_result,
                 ensure_ascii=False
